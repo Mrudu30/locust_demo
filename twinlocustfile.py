@@ -1,23 +1,13 @@
 from locust import HttpUser, between, task
 import random
-import pymysql.cursors
+from infodatabase import twincity_info
 
 def random_user_id():
     return random.randint(0,100000)
 
-class twincity_info:
-    def connect(self):
-        connection =  pymysql.connect(host="localhost", user="root", password="", database="twincitiesautoauctions", charset='utf8mb4')
-        return connection.cursor(pymysql.cursors.DictCursor)
-
-    # def fetch_user_info(self):
-    #     cursor = self.connect()
-    #     try:
-    #         cursor.execute("SELECT * FROM manage_customer WHERE ")
-
 class locust_test(HttpUser):
     wait_time = between(1, 3)
-    host = "http://192.168.1.184:9000"
+    host = "http://127.0.0.1:9000"
     used_user_id = set()
 
     # @task
@@ -75,21 +65,63 @@ class locust_test(HttpUser):
             if(u_id not in self.used_user_id):
                 self.used_user_id.add(u_id)
                 return f"user{u_id}@example.com"
+            
+    @task
+    def pre_bid_task(self):
+        choice = random.choice([0,1])
+        if choice == 0:
+            self.pre_bid_single()
+        else:
+            self.pre_bid_max()
 
     def pre_bid_single(self):
-        user_id = random.randint(0,24)
-        payload = {
-            "add-bid": "add-bid",
-            "type" : "pre bid",
-            "user_id" : user_id,
-            "auction_id" : "5",
-            "inventory_id": "30",
-            "reserve_price": "5450000.0",
-            "bid_type": "single bid",
-            "bid_amount": "",
-            "get_single_bid":"",
-            "get_max_bid":"",
-            "current_win_user":"",
-            "current_bid_amount":""
-        }
-        # /bidding/add-user-vehicle-bid
+        inventory_id=30
+        user_id = random.randint(1,24)
+        bid_info = twincity_info.get_current_bid(inventory_id)
+        current_bid_amt = bid_info['bid_amount']
+        bid_amount = random.randrange(start=(int(current_bid_amt)+50),stop=None)
+        if bid_amount>current_bid_amt:
+            winning_bid = twincity_info.get_winning_user(inventory_id)
+            payload = {
+                "add-bid": "add-bid",
+                "type" : "pre bid",
+                "user_id" : user_id,
+                "auction_id" : "5",
+                "inventory_id": "30",
+                "reserve_price": "5450000.0",
+                "bid_type": "single bid",
+                "bid_amount": bid_amount,
+                "get_single_bid":bid_amount,
+                "get_max_bid":"0",
+                "current_win_user":winning_bid,
+                "current_bid_amount":current_bid_amt
+            }
+            self.client.post("/bidding/add-user-vehicle-bid",data=payload)
+        else:
+            pass
+        
+    def pre_bid_max(self):
+        inventory_id=30
+        user_id = random.randint(1,24)
+        bid_info = twincity_info.get_current_bid(inventory_id)
+        current_bid_amt = bid_info['bid_amount']
+        bid_amount = random.randrange(start=(int(current_bid_amt)+50),stop=None)
+        if bid_amount>current_bid_amt:
+            winning_bid = twincity_info.get_winning_user(inventory_id)
+            payload = {
+                "add-bid": "add-bid",
+                "type" : "pre bid",
+                "user_id" : user_id,
+                "auction_id" : "5",
+                "inventory_id": "30",
+                "reserve_price": "5450000.0",
+                "bid_type": "max bid",
+                "bid_amount": bid_amount,
+                "get_single_bid":"0",
+                "get_max_bid":bid_amount,
+                "current_win_user":winning_bid,
+                "current_bid_amount":current_bid_amt
+            }
+            self.client.post("/bidding/add-user-vehicle-bid",data=payload)
+        else:
+            pass
