@@ -1,6 +1,7 @@
 from locust import HttpUser, between, task
 import random
 import pymysql as p
+import pymysql.cursors
 
 def random_user_id():
     return random.randint(0,100000)
@@ -8,7 +9,7 @@ def random_user_id():
 class twincity_info:
     def connect(self):
         connection =  p.connect(host="localhost", user="root", password="", database="twincitiesautoauctions", charset='utf8mb4')
-        return connection.cursor(p.cursors.DictCursor)
+        return connection.cursor(pymysql.cursors.DictCursor)
 
     # def fetch_user_info(self):
     #     cursor = self.connect()
