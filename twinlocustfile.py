@@ -2,8 +2,11 @@ from locust import HttpUser, between, task
 import random
 from infodatabase import twincity_info
 
+# run command
+# locust -f twinlocustfile.py --web-host=127.0.0.1 --web-port=8888
+
 def random_user_id():
-    return random.randint(0,100000)
+    return random.randint(1,100000)
 
 class locust_test(HttpUser):
     wait_time = between(1, 3)
@@ -65,8 +68,8 @@ class locust_test(HttpUser):
             if(u_id not in self.used_user_id):
                 self.used_user_id.add(u_id)
                 return f"user{u_id}@example.com"
-            
-    @task
+
+    # @task
     def pre_bid_task(self):
         choice = random.choice([0,1])
         if choice == 0:
@@ -99,7 +102,7 @@ class locust_test(HttpUser):
             self.client.post("/bidding/add-user-vehicle-bid",data=payload)
         else:
             pass
-        
+
     def pre_bid_max(self):
         inventory_id=30
         user_id = random.randint(1,24)
@@ -125,3 +128,84 @@ class locust_test(HttpUser):
             self.client.post("/bidding/add-user-vehicle-bid",data=payload)
         else:
             pass
+
+    @task
+    def get_live_auction_details(self):
+        user_id = random.randint(1,24)
+        payload = {
+            "auction_id": "6",
+            "user_id": user_id,
+            "livebid": "livebid"
+        }
+        response = self.client.post("/bidding/get-live-bidding",data=payload)
+        # return response.text
+        if response.status_code == 200:
+            auction_details = response.json()
+            # print(auction_details)
+            choice = random.choice([0,1])
+            if choice == 1:
+                self.live_bid_single(auction_details,user_id)
+            else:
+                self.live_bid_max(auction_details,user_id)
+            return ({'auction_details':auction_details,'current_user_id':user_id})
+
+    def live_bid_single(self,auction_details,current_user_id):
+        data = auction_details.get("data")
+        user_id = data['user_id']
+        inventory_extend_time = auction_details.get("inventory_extend_time")
+        bid_history = auction_details.get("user_bid_history")
+
+        # Get the latest bid amount
+        latest_bid_amount = bid_history[-1]['bid_amount'] if bid_history else 0
+        payload = {
+            "customer_id": current_user_id,
+            "progressbar_count": 30000,
+            "bid_type": "single bid",
+            "live-bid": "live-bid",
+            "inventory_id":inventory_extend_time['id'],
+            "type": "live bid",
+            "user_id": current_user_id,
+            "auction_id": 6,
+            "extend_time": 15,
+            "duration_time": 300,
+            "auto_extend_time": 15,
+            "reserve_price": inventory_extend_time['reserve_price'],
+            "get_single_bid": latest_bid_amount,
+            "get_max_bid": 0,
+            "current_win_user":user_id,
+            "current_bid_amount":data['bid_amount'],
+            "bid_amount":data['bid_amount']+50,
+            "bid_amount":data['bid_amount']+50
+        }
+        # print(payload)
+        response = self.client.post('/bidding/live-vehicle-bid-user-add',data=payload)
+        # print("this is response:",response.text)
+
+    def live_bid_max(self,auction_details,current_user_id):
+        data = auction_details.get("data")
+        user_id = data['user_id']
+        inventory_extend_time = auction_details.get("inventory_extend_time")
+        bid_history = auction_details.get("user_bid_history")
+        max_bid_amount = max([bid['bid_amount'] for bid in bid_history]) if bid_history else 0
+        payload = {
+            "customer_id": current_user_id,
+            "progressbar_count": 30000,
+            "bid_type": "max bid",
+            "live-bid": "live-bid",
+            "inventory_id":inventory_extend_time['id'],
+            "type": "live bid",
+            "user_id": current_user_id,
+            "auction_id": 6,
+            "extend_time": 15,
+            "duration_time": 300,
+            "auto_extend_time": 15,
+            "reserve_price": inventory_extend_time['reserve_price'],
+            "get_single_bid": max_bid_amount,
+            "get_max_bid": 0,
+            "current_win_user":user_id,
+            "bid_amount":data['bid_amount']+50,
+            "bid_amount":data['bid_amount']+50
+        }
+        # print(payload)
+        response = self.client.post('/bidding/live-vehicle-bid-user-add',data=payload)
+        # print("this is response:",response.text)
