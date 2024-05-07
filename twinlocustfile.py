@@ -10,7 +10,7 @@ def random_user_id():
 
 class locust_test(HttpUser):
     wait_time = between(1, 3)
-    host = "http://127.0.0.1:9000"
+    host = "http://192.168.1.184:9000"
     used_user_id = set()
 
     # @task
@@ -131,7 +131,7 @@ class locust_test(HttpUser):
 
     @task
     def get_live_auction_details(self):
-        user_id = random.randint(1,24)
+        user_id = random.randint(156,195)
         payload = {
             "auction_id": "6",
             "user_id": user_id,

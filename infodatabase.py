@@ -3,9 +3,9 @@ import pymysql
 
 class twincity_info:
     def connect():
-        connection =  pymysql.connect(host="localhost", user="root", password="", database="twincitiesautoauctions", charset='utf8mb4')
+        connection =  pymysql.connect(host="192.168.1.184", user="root", password="", database="twincitiesautoauctions", charset='utf8mb4')
         return connection.cursor(pymysql.cursors.DictCursor)
-    
+
     def get_current_bid(id):
         cursor = twincity_info.connect()
         try:
@@ -19,7 +19,7 @@ class twincity_info:
             return ()
         finally:
             cursor.close()
-            
+
     def get_winning_user(invent_id):
         cursor = twincity_info.connect( )
         try:
